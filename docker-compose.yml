@@ -1,0 +1,74 @@
+# Run the whole stack with Docker:   docker compose up --build
+# With a real Milvus server:          docker compose --profile milvus up --build
+# With a local Llama model (CPU):     OLLAMA_URL_DOCKER=http://ollama:11434 docker compose --profile ollama up --build
+#   then once:  docker compose exec ollama ollama pull llama3.2:3b
+# (Without the profile, the backend reaches an Ollama you run on your laptop via host.docker.internal.)
+name: agentic-soc
+
+services:
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      CORS_ORIGINS: http://localhost:3000
+      OLLAMA_URL: ${OLLAMA_URL_DOCKER:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - soc-data:/data
+      - ./backend/data/intel_import:/data/intel_import:ro
+    ports: ["8000:8000"]
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports: ["3000:3000"]
+    depends_on: [backend]
+    restart: unless-stopped
+
+  # ---- optional: Milvus standalone (set MILVUS_URI=http://milvus:19530 in .env) ----
+  etcd:
+    profiles: [milvus]
+    image: quay.io/coreos/etcd:v3.5.16
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    volumes: [etcd-data:/etcd]
+  minio:
+    profiles: [milvus]
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    command: minio server /minio_data
+    volumes: [minio-data:/minio_data]
+  milvus:
+    profiles: [milvus]
+    image: milvusdb/milvus:v2.4.17
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    depends_on: [etcd, minio]
+    volumes: [milvus-data:/var/lib/milvus]
+    ports: ["19530:19530"]
+
+  # ---- optional: Ollama serving Llama 3.2 on CPU ----
+  ollama:
+    profiles: [ollama]
+    image: ollama/ollama:latest
+    volumes: [ollama-models:/root/.ollama]
+    ports: ["11434:11434"]
+
+volumes:
+  soc-data:
+  etcd-data:
+  minio-data:
+  milvus-data:
+  ollama-models:

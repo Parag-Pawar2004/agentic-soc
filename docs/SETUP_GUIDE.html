@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agentic SOC Setup Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: sticky step index on the left, one column of numbered steps (a real sequence) on the right. */
+:root {
+  --bg: #f2f4f7; --surface: #ffffff; --sunk: #e9edf2; --line: #d6dde6;
+  --fg: #16202c; --muted: #566274; --faint: #8a95a5;
+  --accent: #0f7f77; --accent-ink: #ffffff; --accent-soft: #d7efec;
+  --warn: #a35a00; --warn-soft: #fbeedb; --code-bg: #16202c; --code-fg: #dfe7ef;
+  --font: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #131a24; --surface: #1a2331; --sunk: #222d3e; --line: #2c384b;
+  --fg: #e4e8ee; --muted: #9aa5b6; --faint: #6c788b;
+  --accent: #6fd3c9; --accent-ink: #0d2523; --accent-soft: #1d3a3c;
+  --warn: #f5a35c; --warn-soft: #3a2a18; --code-bg: #0e141c; --code-fg: #dfe7ef; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #131a24; --surface: #1a2331; --sunk: #222d3e; --line: #2c384b;
+  --fg: #e4e8ee; --muted: #9aa5b6; --faint: #6c788b;
+  --accent: #6fd3c9; --accent-ink: #0d2523; --accent-soft: #1d3a3c;
+  --warn: #f5a35c; --warn-soft: #3a2a18; --code-bg: #0e141c; --code-fg: #dfe7ef; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 400 16px/1.6 var(--font); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3, p { margin: 0; }
+h1, h2 { text-wrap: balance; }
+a { color: var(--accent); text-underline-offset: 2px; }
+code { font-family: var(--mono); font-size: .88em; background: var(--sunk); padding: 1px 5px; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 40px 80px; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px; }
+header.intro { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.intro h1 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1.08; font-weight: 800; letter-spacing: -.02em; max-width: 18ch; }
+.intro p { color: var(--muted); margin-top: 12px; max-width: 60ch; font-size: 17px; }
+.os { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.os-label { font-size: 13px; color: var(--muted); }
+.seg { display: inline-flex; background: var(--sunk); border-radius: 8px; padding: 3px; }
+.seg button { border: 0; background: none; font: 600 14px var(--font); color: var(--muted); padding: 7px 14px; border-radius: 6px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+
+nav.index { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; }
+.progress { margin-bottom: 18px; }
+.progress p { font-size: 14px; color: var(--muted); }
+.progress strong { color: var(--fg); font-variant-numeric: tabular-nums; }
+.bar { height: 6px; background: var(--sunk); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+nav.index ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+nav.index a { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: baseline; padding: 6px 8px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 14.5px; }
+nav.index a:hover { background: var(--sunk); color: var(--fg); }
+nav.index a .n { font: 500 12px var(--mono); color: var(--faint); }
+nav.index a.done { color: var(--faint); }
+nav.index a.done .n { color: var(--accent); }
+nav.index a.done .n::before { content: "✓"; }
+nav.index a.done .n span { display: none; }
+.optional-tag { font-size: 12px; color: var(--faint); margin-left: 4px; }
+
+main { min-width: 0; display: flex; flex-direction: column; gap: 22px; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px 26px; display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 20px; }
+.step.is-done { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.step-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.num { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font: 600 14px var(--mono); background: var(--sunk); color: var(--muted); }
+.is-done .num { background: var(--accent); color: var(--accent-ink); }
+.step h2 { font-size: 21px; font-weight: 700; line-height: 1.25; }
+.step h2 small { font-weight: 500; font-size: 14px; color: var(--faint); margin-left: 6px; }
+.done-toggle { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--muted); cursor: pointer; user-select: none; white-space: nowrap; }
+.done-toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+.step p, .step li { max-width: 68ch; }
+.step ol.sub, .step ul.sub { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+.why { color: var(--muted); }
+
+.cmd { position: relative; background: var(--code-bg); color: var(--code-fg); border-radius: 8px; font: 14px/1.6 var(--mono); }
+.cmd pre { margin: 0; padding: 14px 92px 14px 16px; overflow-x: auto; white-space: pre; }
+.cmd pre .c { color: #8796ab; }
+.copy { position: absolute; top: 8px; right: 8px; border: 1px solid #3a4658; background: #222d3e; color: #dfe7ef; font: 600 12.5px var(--font); padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+.copy:hover { border-color: #6c788b; }
+.expect { font-size: 14px; color: var(--muted); }
+.expect code { background: transparent; padding: 0; color: var(--fg); }
+
+.callout { border-radius: 8px; padding: 12px 14px; font-size: 15px; background: var(--accent-soft); }
+.callout.warn { background: var(--warn-soft); }
+.callout strong { font-weight: 700; }
+
+table.qa { width: 100%; border-collapse: collapse; font-size: 15px; }
+.table-scroll { overflow-x: auto; }
+table.qa th, table.qa td { text-align: left; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.qa th { font-size: 13px; color: var(--muted); font-weight: 600; }
+table.qa td:first-child { font-weight: 600; width: 34%; }
+
+.paths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.path { border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.path h3 { font-size: 16px; }
+.path p { font-size: 15px; color: var(--muted); }
+
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; }
+.flow span { padding: 6px 10px; border-radius: 6px; background: var(--sunk); }
+.flow span.human { background: var(--accent-soft); font-weight: 600; }
+.flow i { color: var(--faint); font-style: normal; }
+
+details { border-top: 1px solid var(--line); padding: 12px 0; }
+details:last-child { border-bottom: 1px solid var(--line); }
+summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: var(--faint); font-weight: 400; }
+details[open] summary::after { content: "–"; }
+details > div { padding-top: 10px; display: flex; flex-direction: column; gap: 10px; color: var(--muted); }
+details > div p { color: var(--fg); }
+
+[data-os]:not(.os-show) { display: none !important; }
+
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: 1fr; gap: 24px; padding-block: 24px 60px; }
+  header.intro { grid-template-columns: 1fr; }
+  nav.index { position: static; }
+  nav.index ol { flex-direction: row; flex-wrap: wrap; }
+  nav.index a { grid-template-columns: auto; padding: 4px 8px; background: var(--sunk); }
+  nav.index a .label { display: none; }
+  .paths { grid-template-columns: 1fr; }
+  .step { padding: 18px; }
+  .step-head { grid-template-columns: auto minmax(0, 1fr); }
+  .done-toggle { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="intro">
+    <div>
+      <h1>Get Agentic SOC running on your laptop</h1>
+      <p>About 20 minutes, no prior experience and no special hardware. You install two free programs, run one command, and answer a few questions. Tick each step off as you go.</p>
+    </div>
+    <div class="os">
+      <span class="os-label" id="os-label">Commands shown for</span>
+      <div class="seg" role="group" aria-labelledby="os-label">
+        <button type="button" data-pick="win" aria-pressed="false">Windows</button>
+        <button type="button" data-pick="mac" aria-pressed="false">macOS</button>
+        <button type="button" data-pick="linux" aria-pressed="false">Linux</button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="index" aria-label="Steps">
+    <div class="progress">
+      <p><strong id="done-count">0</strong> of <strong id="total-count">0</strong> steps done</p>
+      <div class="bar"><span id="bar"></span></div>
+    </div>
+    <ol id="index"></ol>
+  </nav>
+
+  <main>
+    <section class="step" id="python" data-title="Install Python">
+      <div class="step-head">
+        <span class="num"><span>1</span></span>
+        <h2>Install Python</h2>
+        <label class="done-toggle"><input type="checkbox" id="done-python"> Done</label>
+      </div>
+      <p class="why">The backend (the AI agents and the API) is written in Python. Version 3.12 is the safest choice.</p>
+      <div data-os="win">
+        <ol class="sub">
+          <li>Download Python 3.12 from <a href="https://www.python.org/downloads/windows/" target="_blank" rel="noreferrer">python.org/downloads/windows</a> (“Windows installer (64-bit)”).</li>
+          <li>Run it. On the first screen, tick <strong>Add python.exe to PATH</strong>, then click <strong>Install Now</strong>.</li>
+          <li>Open <strong>PowerShell</strong> (press the Windows key, type “PowerShell”, press Enter) and check it worked:</li>
+        </ol>
+        <div class="cmd"><pre>py --version</pre><button class="copy" type="button">Copy</button></div>
+      </div>
+      <div data-os="mac">
+        <ol class="sub">
+          <li>Download Python 3.12 from <a href="https://www.python.org/downloads/macos/" target="_blank" rel="noreferrer">python.org/downloads/macos</a> and open the .pkg file.</li>
+          <li>Click through the installer, then open <strong>Terminal</strong> (Cmd + Space, type “Terminal”) and check:</li>
+        </ol>
+        <div class="cmd"><pre>python3 --version</pre><button class="copy" type="button">Copy</button></div>
+      </div>
+      <div data-os="linux">
+        <p>Most distributions already have Python 3.10 or newer. On Ubuntu/Debian, make sure the venv module is there:</p>
+        <div class="cmd"><pre>sudo apt update && sudo apt install -y python3 python3-venv python3-pip
+python3 --version</pre><button class="copy" type="button">Copy</button></div>
+      </div>
+      <p class="expect">You should see <code>Python 3.12.x</code> (3.10 to 3.13 also work).</p>
+    </section>
+
+    <section class="step" id="node" data-title="Install Node.js">
+      <div class="step-head">
+        <span class="num"><span>2</span></span>
+        <h2>Install Node.js</h2>
+        <label class="done-toggle"><input type="checkbox" id="done-node"> Done</label>
+      </div>
+      <p class="why">The dashboard is a Next.js web app, which needs Node.js to build and run.</p>
+      <div data-os="win">
+        <p>Download the <strong>LTS</strong> installer from <a href="https://nodejs.org/" target="_blank" rel="noreferrer">nodejs.org</a> and accept the defaults. Or, in PowerShell:</p>
+        <div class="cmd"><pre>winget install -e --id OpenJS.NodeJS.LTS</pre><button class="copy" type="button">Copy</button></div>
+      </div>
+      <div data-os="mac">
+        <p>Download the <strong>LTS</strong> .pkg from <a href="https://nodejs.org/" target="_blank" rel="noreferrer">nodejs.org</a>, or if you use Homebrew:</p>
+        <div class="cmd"><pre>brew install node@20</pre><button class="copy" type="button">Copy</button></div>
+      </div>
+      <div data-os="linux">
+        <p>Use the NodeSource packages for a current LTS version:</p>
+        <div class="cmd"><pre>curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs</pre><button class="copy" type="button">Copy</button></div>
+      </div>
+      <p class="callout"><strong>Close the terminal and open a new one</strong> after installing, so it can find Node. Then check:</p>
+      <div class="cmd"><pre>node --version</pre><button class="copy" type="button">Copy</button></div>
+      <p class="expect">You should see <code>v20.x</code> or newer (v18 is the minimum).</p>
+    </section>
+
+    <section class="step" id="key" data-title="Get a free Llama 3 key" data-optional>
+      <div class="step-head">
+        <span class="num"><span>3</span></span>
+        <h2>Get a free Llama 3 key <small>optional</small></h2>
+        <label class="done-toggle"><input type="checkbox" id="done-key"> Done</label>
+      </div>
+      <p class="why">The triage agent thinks with Meta’s open-weight Llama 3. You don’t have a GPU, so the easiest option runs it on someone else’s servers for free. You can skip this: the agents then use a built-in rule-based analyst, and you can add a key later.</p>
+      <ol class="sub">
+        <li>Go to <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noreferrer">openrouter.ai/settings/keys</a> and sign in with Google or GitHub.</li>
+        <li>Click <strong>Create Key</strong>, give it a name like “agentic-soc”, and copy the key (it starts with <code>sk-or-</code>).</li>
+        <li>Keep it somewhere safe for a few minutes. The setup script will ask for it.</li>
+      </ol>
+      <p class="callout warn"><strong>Free models have rate limits.</strong> If the model is busy, that alert is triaged by the rule-based analyst instead, and you’ll see a note in its reasoning trace. Nothing breaks.</p>
+      <details>
+        <summary>Prefer to run Llama on your own laptop?</summary>
+        <div>
+          <p>Install <a href="https://ollama.com/download" target="_blank" rel="noreferrer">Ollama</a>, then choose “Ollama on this laptop” during setup. It downloads Llama 3.2 3B (about 2 GB) and runs on your CPU. It’s slower, around 10–40 seconds per alert, but nothing leaves your machine.</p>
+        </div>
+      </details>
+      <details>
+        <summary>What about Groq?</summary>
+        <div>
+          <p>Groq is supported and very fast, but it retired its Llama 3 models in August 2026. If you pick Groq, the default model is the open-weight <code>openai/gpt-oss-20b</code>.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="step" id="run" data-title="Run the setup command">
+      <div class="step-head">
+        <span class="num"><span>4</span></span>
+        <h2>Run the setup command</h2>
+        <label class="done-toggle"><input type="checkbox" id="done-run"> Done</label>
+      </div>
+      <p class="why">Pick whichever file you have. Both do the same thing: install everything into the project folder, run the self-tests, and open the dashboard.</p>
+      <div class="paths">
+        <div class="path">
+          <h3>You have the single file <code>install_agentic_soc.py</code></h3>
+          <p>Open a terminal in the folder where you saved it (in Windows Explorer: click the address bar, type <code>powershell</code>, press Enter).</p>
+          <div class="cmd" data-os="win"><pre>py install_agentic_soc.py</pre><button class="copy" type="button">Copy</button></div>
+          <div class="cmd" data-os="mac"><pre>cd ~/Downloads
+python3 install_agentic_soc.py</pre><button class="copy" type="button">Copy</button></div>
+          <div class="cmd" data-os="linux"><pre>cd ~/Downloads
+python3 install_agentic_soc.py</pre><button class="copy" type="button">Copy</button></div>
+          <p>It asks where to unpack (press Enter for <code>./agentic-soc</code>) and then starts the setup.</p>
+        </div>
+        <div class="path">
+          <h3>You have the unzipped <code>agentic-soc</code> folder</h3>
+          <p>Open a terminal inside that folder, then run:</p>
+          <div class="cmd" data-os="win"><pre>py setup_soc.py</pre><button class="copy" type="button">Copy</button></div>
+          <div class="cmd" data-os="mac"><pre>cd ~/Downloads/agentic-soc
+python3 setup_soc.py</pre><button class="copy" type="button">Copy</button></div>
+          <div class="cmd" data-os="linux"><pre>cd ~/Downloads/agentic-soc
+python3 setup_soc.py</pre><button class="copy" type="button">Copy</button></div>
+        </div>
+      </div>
+      <p class="callout" data-os="win"><strong>On Windows, use <code>py</code> instead of <code>python3</code>.</strong> Typing <code>python3</code> often opens the Microsoft Store instead of running Python.</p>
+      <p>The first run downloads roughly 400 MB of packages and takes 5–10 minutes.</p>
+    </section>
+
+    <section class="step" id="answers" data-title="Answer the questions">
+      <div class="step-head">
+        <span class="num"><span>5</span></span>
+        <h2>Answer the questions</h2>
+        <label class="done-toggle"><input type="checkbox" id="done-answers"> Done</label>
+      </div>
+      <p class="why">The script only asks for passwords, keys and yes/no choices. Everything is saved to a private <code>.env</code> file in the project folder, which is never uploaded to GitHub.</p>
+      <div class="table-scroll">
+        <table class="qa">
+          <thead><tr><th>Question</th><th>What to answer</th></tr></thead>
+          <tbody>
+            <tr><td>Dashboard username</td><td>Press Enter to keep <code>analyst</code>.</td></tr>
+            <tr><td>Choose a dashboard password</td><td>Type one you’ll remember (nothing shows while you type, that’s normal), or press Enter and it generates one and prints it.</td></tr>
+            <tr><td>Which Llama 3 model should the triage agent use?</td><td>Type <code>1</code> for OpenRouter and paste the key from step 3. Choose 4 if you skipped that step.</td></tr>
+            <tr><td>Download better AI search embeddings?</td><td>Press Enter for no. Say yes later if threat-intel search feels weak.</td></tr>
+            <tr><td>Connect REAL response systems now?</td><td>Press Enter for no. The safe simulator shows the whole flow without touching a real network.</td></tr>
+            <tr><td>Publish this project to your GitHub now?</td><td>Press Enter for no. You can do it later (step 8).</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="expect">At the end you’ll see <code>✔ Dashboard running → http://localhost:3000</code> and your browser opens.</p>
+    </section>
+
+    <section class="step" id="use" data-title="Try the dashboard">
+      <div class="step-head">
+        <span class="num"><span>6</span></span>
+        <h2>Try the dashboard</h2>
+        <label class="done-toggle"><input type="checkbox" id="done-use"> Done</label>
+      </div>
+      <p class="why">Sign in with your username and password, then follow one alert all the way through.</p>
+      <div class="flow" aria-label="How an alert flows through the system">
+        <span>Alert arrives</span><i>→</i><span>Supervisor picks a playbook</span><i>→</i><span>Threat intel searches the RAG store</span><i>→</i><span>Llama 3 gives a verdict</span><i>→</i><span>Response agent proposes a fix</span><i>→</i><span class="human">You approve</span><i>→</i><span>SOAR applies it</span>
+      </div>
+      <ol class="sub">
+        <li>Press <strong>Simulate alert</strong> (top right). The case opens and the reasoning trace fills in live, one agent rail at a time.</li>
+        <li>When it finishes, read the verdict, then press <strong>Approve</strong> on a proposed change and confirm. The trace shows your decision and the result.</li>
+        <li>Open <strong>Blocklist &amp; audit</strong> to see the blocked address and press <strong>Undo</strong> to roll it back.</li>
+        <li>Open <strong>Threat intel</strong> and search for “many failed ssh logins”. That’s the same RAG search the agents run.</li>
+        <li>The API explorer is at <a href="http://localhost:8000/docs" target="_blank" rel="noreferrer">localhost:8000/docs</a>.</li>
+      </ol>
+      <p>To stop everything, press <strong>Ctrl + C</strong> in the terminal. To start again later:</p>
+      <div class="cmd" data-os="win"><pre>py setup_soc.py --start</pre><button class="copy" type="button">Copy</button></div>
+      <div class="cmd" data-os="mac"><pre>python3 setup_soc.py --start</pre><button class="copy" type="button">Copy</button></div>
+      <div class="cmd" data-os="linux"><pre>python3 setup_soc.py --start</pre><button class="copy" type="button">Copy</button></div>
+    </section>
+
+    <section class="step" id="alerts" data-title="Send your own alerts" data-optional>
+      <div class="step-head">
+        <span class="num"><span>7</span></span>
+        <h2>Send your own alerts <small>optional</small></h2>
+        <label class="done-toggle"><input type="checkbox" id="done-alerts"> Done</label>
+      </div>
+      <p class="why">Any tool that can call a webhook (Wazuh, Suricata, Splunk, a cron script) can send alerts. Use the <code>INGEST_API_KEY</code> value from your <code>.env</code> file.</p>
+      <div class="cmd" data-os="win"><pre>$key = "PASTE_INGEST_API_KEY"
+Invoke-RestMethod -Method Post -Uri http://localhost:8000/api/alerts `
+  -Headers @{ "X-API-Key" = $key } -ContentType "application/json" `
+  -Body '{"title":"Brute force on VPN","src_ip":"203.0.113.10","username":"alice","severity":"high","category":"authentication","description":"120 failed logins in 3 minutes","raw":{"failed_attempts":120}}'</pre><button class="copy" type="button">Copy</button></div>
+      <div class="cmd" data-os="mac"><pre>curl -X POST http://localhost:8000/api/alerts \
+  -H "X-API-Key: PASTE_INGEST_API_KEY" -H "Content-Type: application/json" \
+  -d '{"title":"Brute force on VPN","src_ip":"203.0.113.10","username":"alice","severity":"high","category":"authentication","description":"120 failed logins in 3 minutes","raw":{"failed_attempts":120}}'</pre><button class="copy" type="button">Copy</button></div>
+      <div class="cmd" data-os="linux"><pre>curl -X POST http://localhost:8000/api/alerts \
+  -H "X-API-Key: PASTE_INGEST_API_KEY" -H "Content-Type: application/json" \
+  -d '{"title":"Brute force on VPN","src_ip":"203.0.113.10","username":"alice","severity":"high","category":"authentication","description":"120 failed logins in 3 minutes","raw":{"failed_attempts":120}}'</pre><button class="copy" type="button">Copy</button></div>
+      <p class="expect">The address <code>203.0.113.10</code> is reserved for documentation, so the response agent’s guardrails refuse to block it and say so in the trace. That’s the safety net working. Real attacker addresses get a proposed block for you to approve.</p>
+      <p>To give the agents more context, import your own intel (a team blocklist, notes from past incidents) as CSV or JSON in <strong>Threat intel → Add your own intel</strong>, or drop files into <code>backend/data/intel_import/</code>.</p>
+    </section>
+
+    <section class="step" id="github" data-title="Publish to GitHub and Docker Hub" data-optional>
+      <div class="step-head">
+        <span class="num"><span>8</span></span>
+        <h2>Publish to GitHub and Docker Hub <small>optional</small></h2>
+        <label class="done-toggle"><input type="checkbox" id="done-github"> Done</label>
+      </div>
+      <p class="why">One command creates your GitHub repository, pushes the code, and stores your Docker Hub token as an Actions secret. From then on, every push runs the tests and builds container images automatically.</p>
+      <ol class="sub">
+        <li>Install <a href="https://git-scm.com/downloads" target="_blank" rel="noreferrer">Git</a> if you don’t have it.</li>
+        <li>Create a GitHub token at <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&amp;description=agentic-soc-setup" target="_blank" rel="noreferrer">github.com/settings/tokens/new</a> with the <code>repo</code> and <code>workflow</code> boxes ticked.</li>
+        <li>Create a Docker Hub account and an access token at <a href="https://app.docker.com/settings/personal-access-tokens" target="_blank" rel="noreferrer">app.docker.com → Personal access tokens</a> (Read &amp; Write).</li>
+        <li>Run:</li>
+      </ol>
+      <div class="cmd" data-os="win"><pre>py setup_soc.py --github</pre><button class="copy" type="button">Copy</button></div>
+      <div class="cmd" data-os="mac"><pre>python3 setup_soc.py --github</pre><button class="copy" type="button">Copy</button></div>
+      <div class="cmd" data-os="linux"><pre>python3 setup_soc.py --github</pre><button class="copy" type="button">Copy</button></div>
+      <p class="expect">Then watch the build at <code>github.com/YOUR_NAME/agentic-soc/actions</code>. Your images appear as <code>YOUR_DOCKERHUB_NAME/agentic-soc-backend</code> and <code>…-frontend</code>.</p>
+      <p class="callout">Your <code>.env</code> file with passwords and keys is listed in <code>.gitignore</code>, so it is never pushed.</p>
+    </section>
+
+    <section class="step" id="k8s" data-title="Kubernetes with Helm and Terraform" data-optional>
+      <div class="step-head">
+        <span class="num"><span>9</span></span>
+        <h2>Kubernetes with Helm and Terraform <small>optional</small></h2>
+        <label class="done-toggle"><input type="checkbox" id="done-k8s"> Done</label>
+      </div>
+      <p class="why">This is how a security team would install it into their own cluster. You can practise on your laptop for free: Terraform creates a small Kubernetes cluster inside Docker and installs the Helm chart into it. It needs about 4 GB of free RAM.</p>
+      <ol class="sub">
+        <li>Install <a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noreferrer">Docker Desktop</a> and <a href="https://developer.hashicorp.com/terraform/install" target="_blank" rel="noreferrer">Terraform</a>, and finish step 8 so your images exist on Docker Hub.</li>
+        <li>Run:</li>
+      </ol>
+      <div class="cmd"><pre>cd deploy/terraform/local
+terraform init
+terraform apply -var="dockerhub_user=YOUR_DOCKERHUB_NAME" -var="analyst_password=CHOOSE_ONE"</pre><button class="copy" type="button">Copy</button></div>
+      <p data-os="win">Add <code>127.0.0.1 soc.local</code> to <code>C:\Windows\System32\drivers\etc\hosts</code> (open Notepad as administrator), then visit <code>http://soc.local</code>.</p>
+      <p data-os="mac">Add the hostname with <code>echo "127.0.0.1 soc.local" | sudo tee -a /etc/hosts</code>, then visit <code>http://soc.local</code>.</p>
+      <p data-os="linux">Add the hostname with <code>echo "127.0.0.1 soc.local" | sudo tee -a /etc/hosts</code>, then visit <code>http://soc.local</code>.</p>
+      <p>Remove it all with <code>terraform destroy</code>. The <code>deploy/terraform/aws</code> folder creates the real AWS WAF blocklist and a least-privilege IAM user for the response agent. Its EKS cluster option costs money, so it’s off by default.</p>
+    </section>
+
+    <section class="step" id="help" data-title="If something goes wrong">
+      <div class="step-head">
+        <span class="num"><span>?</span></span>
+        <h2>If something goes wrong</h2>
+        <span></span>
+      </div>
+      <p class="why">Run the doctor first. It lists what’s installed, what’s missing and what’s running.</p>
+      <div class="cmd" data-os="win"><pre>py setup_soc.py --doctor</pre><button class="copy" type="button">Copy</button></div>
+      <div class="cmd" data-os="mac"><pre>python3 setup_soc.py --doctor</pre><button class="copy" type="button">Copy</button></div>
+      <div class="cmd" data-os="linux"><pre>python3 setup_soc.py --doctor</pre><button class="copy" type="button">Copy</button></div>
+      <div>
+        <details>
+          <summary>“python3” opens the Microsoft Store</summary>
+          <div><p>Use <code>py</code> instead, for example <code>py setup_soc.py</code>. You can also turn off the Store shortcut in Settings → Apps → Advanced app settings → App execution aliases.</p></div>
+        </details>
+        <details>
+          <summary>“node” or “npm” is not recognised</summary>
+          <div><p>Close every terminal window and open a new one; it only picks up newly installed programs when it starts. If it still fails, reinstall Node.js LTS and restart the computer.</p></div>
+        </details>
+        <details>
+          <summary>A package fails to install with pip</summary>
+          <div><p>This usually means a very new Python (3.14) without ready-made packages yet. Install Python 3.12, delete the <code>backend/.venv</code> folder, and run the setup again.</p></div>
+        </details>
+        <details>
+          <summary>“Address already in use” or the backend didn’t start</summary>
+          <div><p>Another program is using port 8000 or 3000, often an earlier copy of this project. Close old terminal windows (or restart), then run <code>--start</code> again. The last lines of <code>logs/backend.log</code> say exactly what failed.</p></div>
+        </details>
+        <details>
+          <summary>The status bar says the model isn’t reachable</summary>
+          <div><p>Check the key with <code>--configure</code>. For Ollama, make sure the Ollama app is running and you pulled the model with <code>ollama pull llama3.2:3b</code>. Alerts are still triaged by the rule-based analyst in the meantime.</p></div>
+        </details>
+        <details>
+          <summary>I forgot my dashboard password</summary>
+          <div><p>Open the <code>.env</code> file in the project folder with any text editor; it’s on the <code>ANALYST_PASSWORD=</code> line. Or set a new one with <code>--configure</code>.</p></div>
+        </details>
+        <details>
+          <summary>Does it use Milvus on Windows?</summary>
+          <div><p>Milvus Lite (the embedded version) only runs on macOS and Linux, so on Windows the RAG store uses a built-in vector index with the same behaviour. To use a full Milvus server anywhere, run <code>docker compose --profile milvus up</code> and set <code>MILVUS_URI=http://localhost:19530</code> in <code>.env</code>.</p></div>
+        </details>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  var store = {
+    get: function (k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  // ---- OS switcher
+  var detected = /Win/i.test(navigator.platform || navigator.userAgent) ? "win"
+    : /Mac/i.test(navigator.platform || navigator.userAgent) ? "mac" : "linux";
+  function setOS(os) {
+    document.querySelectorAll("[data-pick]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-pick") === os));
+    });
+    document.querySelectorAll("[data-os]").forEach(function (el) {
+      el.classList.toggle("os-show", el.getAttribute("data-os") === os);
+    });
+    store.set("soc-guide-os", os);
+  }
+  document.querySelectorAll("[data-pick]").forEach(function (b) {
+    b.addEventListener("click", function () { setOS(b.getAttribute("data-pick")); });
+  });
+  setOS(store.get("soc-guide-os") || detected);
+
+  // ---- step index + progress
+  var steps = Array.prototype.slice.call(document.querySelectorAll("section.step"));
+  var index = document.getElementById("index");
+  var tracked = steps.filter(function (s) { return s.querySelector(".done-toggle input"); });
+  document.getElementById("total-count").textContent = tracked.length;
+  steps.forEach(function (s) {
+    var li = document.createElement("li");
+    var a = document.createElement("a");
+    a.href = "#" + s.id;
+    var num = s.querySelector(".num").textContent.trim();
+    a.innerHTML = '<span class="n"><span>' + num + '</span></span><span class="label"></span>';
+    a.querySelector(".label").textContent = s.getAttribute("data-title");
+    if (s.hasAttribute("data-optional")) {
+      var tag = document.createElement("span");
+      tag.className = "optional-tag";
+      tag.textContent = "optional";
+      a.querySelector(".label").appendChild(tag);
+    }
+    a.title = s.getAttribute("data-title");
+    li.appendChild(a);
+    index.appendChild(li);
+    s._link = a;
+  });
+  function refresh() {
+    var done = 0;
+    tracked.forEach(function (s) {
+      var on = s.querySelector(".done-toggle input").checked;
+      s.classList.toggle("is-done", on);
+      s._link.classList.toggle("done", on);
+      if (on) done++;
+    });
+    document.getElementById("done-count").textContent = done;
+    document.getElementById("bar").style.width = (tracked.length ? (done / tracked.length) * 100 : 0) + "%";
+  }
+  var saved = {};
+  try { saved = JSON.parse(store.get("soc-guide-done") || "{}"); } catch (e) {}
+  tracked.forEach(function (s) {
+    var box = s.querySelector(".done-toggle input");
+    box.checked = !!saved[s.id];
+    box.addEventListener("change", function () {
+      saved[s.id] = box.checked;
+      store.set("soc-guide-done", JSON.stringify(saved));
+      refresh();
+    });
+  });
+  refresh();
+
+  // ---- copy buttons
+  document.querySelectorAll(".copy").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var pre = btn.parentElement.querySelector("pre");
+      var text = pre.textContent;
+      function flash(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = "Copy"; }, 1400); }
+      function selectIt() {
+        var r = document.createRange(); r.selectNodeContents(pre);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        flash("Selected");
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { flash("Copied"); }, selectIt);
+      } else { selectIt(); }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

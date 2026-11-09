@@ -1,0 +1,3 @@
+# Optional: better semantic search (~200 MB download on first start, CPU only).
+# Install with:  pip install -r requirements-ml.txt   then set EMBEDDING_BACKEND=fastembed
+fastembed>=0.3

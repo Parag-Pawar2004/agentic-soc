@@ -1,0 +1,7 @@
+.venv
+__pycache__
+*.pyc
+data/*.db
+data/*.npz
+data/milvus_lite.db*
+tests

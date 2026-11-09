@@ -1,0 +1,18 @@
+# Core API
+fastapi>=0.115
+uvicorn[standard]>=0.30
+httpx>=0.27
+itsdangerous>=2.2
+pydantic>=2.7
+
+# Agents + RAG
+langgraph>=0.2.50
+numpy>=1.26
+pymilvus>=2.4.4
+milvus-lite>=2.4.10; sys_platform != "win32"
+
+# SOAR integrations
+boto3>=1.34
+
+# Tests
+pytest>=8.0

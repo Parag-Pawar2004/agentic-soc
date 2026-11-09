@@ -1,0 +1,35 @@
+# secrets & local settings
+.env
+.env.*
+!.env.example
+frontend/.env.local
+
+# python
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# runtime data
+backend/data/*.db
+backend/data/*.db-*
+backend/data/*.npz
+backend/data/milvus_lite.db*
+backend/data/intel_import/*
+!backend/data/intel_import/README.md
+logs/
+
+# node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/tsconfig.tsbuildinfo
+
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform.lock.hcl
+
+.DS_Store
