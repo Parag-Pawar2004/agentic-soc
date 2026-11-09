@@ -133,6 +133,7 @@ class MilvusVectorStore:
             self.client.upsert(collection_name=self.collection, data=rows[i : i + 500])
 
     def search(self, vector: np.ndarray, k: int) -> list[tuple[str, float]]:
+        self.client.load_collection(collection_name=self.collection)  # Milvus must load before search
         res = self.client.search(collection_name=self.collection, data=[vector.tolist()], limit=k,
                                  output_fields=["key"])
         hits = res[0] if res else []
@@ -182,7 +183,12 @@ class ThreatIntelRAG:
         if not query.strip():
             return []
         vector = self.embedder.embed([query])[0]
-        hits = [(key, score) for key, score in self.store.search(vector, k) if not math.isnan(score)]
+        try:
+            raw = self.store.search(vector, k)
+        except Exception as exc:  # a vector-store hiccup must never stop triage
+            log.warning("vector search failed (%s); continuing without intel matches", exc)
+            return []
+        hits = [(key, score) for key, score in raw if not math.isnan(score)]
         rows = self.db.get_intel([key for key, _ in hits])
         results = []
         for key, score in hits:

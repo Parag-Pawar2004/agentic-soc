@@ -1,7 +1,7 @@
 # Docker Hub images built by .github/workflows/docker-publish.yml
 image:
   registry: docker.io
-  owner: yourdockerhubuser        # <- your Docker Hub username
+  owner: Parag2008        # <- your Docker Hub username
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -33,7 +33,7 @@ ingress:
 # Non-secret settings (become environment variables on the backend)
 config:
   LLM_PROVIDER: auto
-  OPENROUTER_MODEL: meta-llama/llama-3.3-70b-instruct:free
+  OPENROUTER_MODEL: meta-llama/llama-3.3-70b-instruct
   GROQ_MODEL: openai/gpt-oss-20b
   OLLAMA_URL: http://ollama:11434
   OLLAMA_MODEL: llama3.2:3b

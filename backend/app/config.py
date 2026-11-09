@@ -73,7 +73,7 @@ class Settings:
     # LLM (open-weight Llama 3 family)
     llm_provider: str = "auto"  # auto | openrouter | groq | ollama | openai_compat | none
     openrouter_api_key: str = ""
-    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
+    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct"
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-20b"  # Groq retired its Llama 3 models in Aug 2026
     ollama_url: str = "http://localhost:11434"
@@ -130,7 +130,7 @@ def get_settings() -> Settings:
         token_ttl_hours=_int("TOKEN_TTL_HOURS", 12),
         llm_provider=_env("LLM_PROVIDER", "auto").lower(),
         openrouter_api_key=_env("OPENROUTER_API_KEY"),
-        openrouter_model=_env("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free"),
+        openrouter_model=_env("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct"),
         groq_api_key=_env("GROQ_API_KEY"),
         groq_model=_env("GROQ_MODEL", "openai/gpt-oss-20b"),
         ollama_url=_env("OLLAMA_URL", "http://localhost:11434").rstrip("/"),

@@ -292,7 +292,7 @@ def configure(reconfigure: bool = False) -> dict[str, str]:
         info("Get a free key at https://openrouter.ai/settings/keys (sign in, 'Create Key').")
         key = ask_secret("OpenRouter API key", env.get("OPENROUTER_API_KEY", ""), "OPENROUTER_API_KEY")
         env["OPENROUTER_API_KEY"] = key
-        env.setdefault("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
+        env.setdefault("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct")
         if not key:
             warn("No key given - agents will use the rule-based analyst until you add one.")
     elif provider == "groq":
